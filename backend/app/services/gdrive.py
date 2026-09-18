@@ -31,6 +31,15 @@ class GoogleDriveService:
             return
 
         creds = None
+        # Support cloud environment variable for Google Drive token
+        env_token = os.environ.get("GDRIVE_TOKEN_JSON")
+        if not os.path.exists(TOKEN_FILE) and env_token:
+            try:
+                with open(TOKEN_FILE, "w") as token_out:
+                    token_out.write(env_token)
+            except Exception as e:
+                print(f"[GDRIVE] Error writing GDRIVE_TOKEN_JSON to file: {e}")
+
         if os.path.exists(TOKEN_FILE):
             try:
                 creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)

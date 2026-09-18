@@ -3,7 +3,7 @@ import json
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from pydantic import BaseModel
 from typing import Optional, Any
-from app.db.database import get_db, row_to_dict, rows_to_list
+from app.db.database import get_db, row_to_dict, rows_to_list, save_database_snapshot
 from app.services.face_engine import face_engine
 from app.services.storage import storage_service
 from app.api.auth import get_current_admin
@@ -118,6 +118,7 @@ def create_event(req: EventCreateRequest, admin_user: dict[str, Any] = Depends(g
                 1 if s.is_main_event else 0
             ))
             
+    save_database_snapshot()
     return {
         "success": True,
         "message": f"Wedding event '{req.title}' created successfully!",
@@ -173,6 +174,7 @@ def update_event(event_id: int, req: EventUpdateRequest, admin_user: dict[str, A
                     1 if s.is_main_event else 0
                 ))
             
+    save_database_snapshot()
     return {"success": True, "message": "Event updated successfully"}
 
 @router.delete("/events/{event_id}")
@@ -190,6 +192,7 @@ def delete_event(event_id: int, admin_user: dict[str, Any] = Depends(get_current
         if next_ev:
             cursor.execute("UPDATE events SET is_active = 1 WHERE id = ?", (next_ev["id"],))
             
+    save_database_snapshot()
     return {"success": True, "message": f"Event #{event_id} deleted"}
 
 @router.post("/events/{event_id}/activate")
@@ -202,6 +205,7 @@ def activate_event(event_id: int, admin_user: dict[str, Any] = Depends(get_curre
         if cursor.rowcount == 0:
             raise HTTPException(status_code=404, detail="Event not found")
             
+    save_database_snapshot()
     return {"success": True, "message": f"Event #{event_id} is now active"}
 
 # ==================== MEDIA MANAGEMENT ====================
@@ -416,6 +420,7 @@ def delete_user(user_id: int, admin_user: dict[str, Any] = Depends(get_current_a
         # Delete user record
         cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
 
+    save_database_snapshot()
     return {"success": True, "message": f"Guest user '{row['email']}' successfully deleted."}
 
 @router.get("/stats")

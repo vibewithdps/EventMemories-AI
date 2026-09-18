@@ -8,8 +8,15 @@ export const DashboardPage = ({ setCurrentView }) => {
   const { user, hasFaceScan, setHasFaceScan } = useAuth();
   const [purgeSuccess, setPurgeSuccess] = useState(null);
   const [isPurging, setIsPurging] = useState(false);
-  const [activeEvent, setActiveEvent] = useState(null);
-  const [loadingEvent, setLoadingEvent] = useState(true);
+  const [activeEvent, setActiveEvent] = useState(() => {
+    try {
+      const cached = localStorage.getItem('faceto_active_event');
+      return cached ? (JSON.parse(cached).event || null) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [loadingEvent, setLoadingEvent] = useState(!localStorage.getItem('faceto_active_event'));
 
   useEffect(() => {
     const fetchActiveEvent = async () => {
@@ -17,12 +24,13 @@ export const DashboardPage = ({ setCurrentView }) => {
         const res = await axios.get('/api/events/active');
         if (res.data && res.data.has_event) {
           setActiveEvent(res.data.event);
+          localStorage.setItem('faceto_active_event', JSON.stringify(res.data));
         } else {
-          setActiveEvent(null);
+          const cached = localStorage.getItem('faceto_active_event');
+          if (!cached) setActiveEvent(null);
         }
       } catch (err) {
         console.error('Failed to load active event:', err);
-        setActiveEvent(null);
       } finally {
         setLoadingEvent(false);
       }

@@ -12,16 +12,32 @@ export const LandingPage = ({ setCurrentView }) => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
 
-  const [activeEventData, setActiveEventData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [activeEventData, setActiveEventData] = useState(() => {
+    try {
+      const cached = localStorage.getItem('faceto_active_event');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [loading, setLoading] = useState(!localStorage.getItem('faceto_active_event'));
 
   const fetchActiveEvent = async () => {
     try {
       const res = await axios.get('/api/events/active');
-      setActiveEventData(res.data);
+      if (res.data?.has_event) {
+        setActiveEventData(res.data);
+        localStorage.setItem('faceto_active_event', JSON.stringify(res.data));
+      } else {
+        // Only clear if server explicitly confirms no event exists and no cached fallback is available
+        const cached = localStorage.getItem('faceto_active_event');
+        if (!cached) {
+          setActiveEventData(res.data);
+        }
+      }
     } catch (err) {
       console.error('Failed to fetch active event:', err);
-      setActiveEventData({ has_event: false });
+      // Keep existing or cached event data on network error
     } finally {
       setLoading(false);
     }

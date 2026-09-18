@@ -1,0 +1,53 @@
+{
+  "events": [
+    {
+      "id": 16,
+      "title": "The Royal Wedding of Rahul & Priya",
+      "couple_names": "Rahul & Priya",
+      "event_date": "2026-11-20T17:00",
+      "venue_name": "The Leela Palace",
+      "venue_city": "Udaipur, Rajasthan",
+      "venue_map_url": "https://maps.google.com",
+      "description": "A magnificent celebration of love, culture, and royal heritage.",
+      "story": "Two souls destined to meet under the starry skies of Udaipur.",
+      "cover_image_url": null,
+      "is_active": 1,
+      "created_at": "2026-09-18 17:53:45",
+      "schedules": [
+        {
+          "id": 17,
+          "event_id": 16,
+          "title": "Grand Varmala & Pheras",
+          "schedule_date": "2026-11-20",
+          "schedule_time": "19:00",
+          "location": "Royal Courtyard",
+          "description": "The sacred vows around the holy fire.",
+          "is_main_event": 1
+        }
+      ]
+    }
+  ],
+  "guests": [
+    {
+      "id": 7,
+      "email": "abc@gmail.com",
+      "full_name": "abc",
+      "role": "guest",
+      "created_at": "2026-09-18 14:22:44"
+    },
+    {
+      "id": 8,
+      "email": "shashi@gmail.com",
+      "full_name": "Shashi Singh",
+      "role": "guest",
+      "created_at": "2026-09-18 15:25:44"
+    },
+    {
+      "id": 9,
+      "email": "priya_guest@wedding.com",
+      "full_name": "Priya Sharma",
+      "role": "guest",
+      "created_at": "2026-09-18 15:40:06"
+    }
+  ]
+}

@@ -74,12 +74,24 @@ def get_active_event():
         cursor.execute("SELECT * FROM events WHERE is_active = 1 ORDER BY id DESC LIMIT 1")
         act = cursor.fetchone()
         
-        # Fallback: if any event exists in database, keep the latest one active
+        # Fallback 1: if any event exists in database, keep the latest one active
         if not act:
             cursor.execute("SELECT * FROM events ORDER BY id DESC LIMIT 1")
             act = cursor.fetchone()
             if act:
                 cursor.execute("UPDATE events SET is_active = 1 WHERE id = ?", (act["id"],))
+        
+        # Fallback 2: if still no event, restore from snapshot or seed so event is never lost on refresh
+        if not act:
+            from app.db.database import restore_database_snapshot
+            from app.db.seed import seed_sample_wedding_data
+            if not restore_database_snapshot():
+                seed_sample_wedding_data()
+            cursor.execute("SELECT * FROM events WHERE is_active = 1 ORDER BY id DESC LIMIT 1")
+            act = cursor.fetchone()
+            if not act:
+                cursor.execute("SELECT * FROM events ORDER BY id DESC LIMIT 1")
+                act = cursor.fetchone()
         
         if not act:
             return {

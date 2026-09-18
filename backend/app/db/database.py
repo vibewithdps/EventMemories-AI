@@ -143,6 +143,90 @@ def init_db():
             except sqlite3.OperationalError:
                 pass
 
+    # Auto-restore data snapshot if table is empty
+    restore_database_snapshot()
+
+SNAPSHOT_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data_snapshot.json")
+
+def save_database_snapshot():
+    """Export current events, schedules, and users to JSON snapshot for cloud persistence."""
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM events ORDER BY id ASC")
+            events = rows_to_list(cursor.fetchall())
+            for ev in events:
+                cursor.execute("SELECT * FROM event_schedules WHERE event_id = ? ORDER BY id ASC", (ev["id"],))
+                ev["schedules"] = rows_to_list(cursor.fetchall())
+            
+            cursor.execute("SELECT id, email, full_name, role, created_at FROM users WHERE role = 'guest'")
+            guests = rows_to_list(cursor.fetchall())
+
+            data = {
+                "events": events,
+                "guests": guests
+            }
+            with open(SNAPSHOT_FILE, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            print("[SNAPSHOT] Saved database snapshot successfully.")
+    except Exception as e:
+        print(f"[SNAPSHOT_SAVE_ERR] {e}")
+
+def restore_database_snapshot() -> bool:
+    """Restore events and schedules from snapshot if DB is empty."""
+    try:
+        if not os.path.exists(SNAPSHOT_FILE):
+            return False
+        with open(SNAPSHOT_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        
+        events = data.get("events", [])
+        if not events:
+            return False
+            
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM events")
+            if cursor.fetchone()[0] == 0:
+                for ev in events:
+                    cursor.execute("""
+                        INSERT INTO events (
+                            title, couple_names, event_date, venue_name,
+                            venue_city, venue_map_url, description, story, is_active
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        ev.get("title", ""),
+                        ev.get("couple_names", ""),
+                        ev.get("event_date", ""),
+                        ev.get("venue_name", ""),
+                        ev.get("venue_city", ""),
+                        ev.get("venue_map_url", ""),
+                        ev.get("description", ""),
+                        ev.get("story", ""),
+                        ev.get("is_active", 1)
+                    ))
+                    new_ev_id = cursor.lastrowid
+                    for s in ev.get("schedules", []):
+                        cursor.execute("""
+                            INSERT INTO event_schedules (
+                                event_id, title, schedule_date, schedule_time,
+                                location, description, is_main_event
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """, (
+                            new_ev_id,
+                            s.get("title", ""),
+                            s.get("schedule_date", ""),
+                            s.get("schedule_time", ""),
+                            s.get("location", ""),
+                            s.get("description", ""),
+                            s.get("is_main_event", 0)
+                        ))
+                print(f"[SNAPSHOT_RESTORE] Restored {len(events)} event(s) from snapshot.")
+                return True
+    except Exception as e:
+        print(f"[SNAPSHOT_RESTORE_ERR] {e}")
+    return False
+
 def row_to_dict(row: Optional[sqlite3.Row]) -> Optional[dict[str, Any]]:
     if row is None:
         return None

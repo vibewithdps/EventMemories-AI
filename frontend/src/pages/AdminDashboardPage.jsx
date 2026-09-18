@@ -33,12 +33,19 @@ const DEFAULT_EVENT_FORM = {
 
 export const AdminDashboardPage = () => {
   const [activeTab, setActiveTab] = useState('events'); // 'events' | 'upload' | 'media' | 'clusters' | 'users' | 'settings'
-  const [events, setEvents] = useState([]);
+  const [events, setEvents] = useState(() => {
+    try {
+      const cached = localStorage.getItem('faceto_events_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
   const [stats, setStats] = useState(null);
   const [mediaList, setMediaList] = useState([]);
   const [clusters, setClusters] = useState([]);
   const [usersList, setUsersList] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!localStorage.getItem('faceto_events_cache'));
 
   // New / Edit Event Modal State
   const [showEventModal, setShowEventModal] = useState(false);
@@ -50,7 +57,17 @@ export const AdminDashboardPage = () => {
 
   // Upload State
   const [uploadFiles, setUploadFiles] = useState([]);
-  const [selectedEventId, setSelectedEventId] = useState('');
+  const [selectedEventId, setSelectedEventId] = useState(() => {
+    try {
+      const cached = localStorage.getItem('faceto_events_cache');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        const act = parsed.find((e) => e.is_active);
+        return act ? act.id : '';
+      }
+    } catch {}
+    return '';
+  });
   const [eventTag, setEventTag] = useState('General Highlights');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatusText, setUploadStatusText] = useState('');
@@ -66,27 +83,64 @@ export const AdminDashboardPage = () => {
   const [purgeMessage, setPurgeMessage] = useState(null);
 
   const fetchDashboardData = async () => {
-    setLoading(true);
+    // 1. Fetch events independently so events are NEVER blocked by other endpoints
     try {
-      const [eventsRes, statsRes, mediaRes, clustersRes, usersRes] = await Promise.all([
-        axios.get('/api/admin/events'),
-        axios.get('/api/admin/stats'),
-        axios.get('/api/admin/media'),
-        axios.get('/api/admin/clusters'),
-        axios.get('/api/admin/users'),
-      ]);
-      setEvents(eventsRes.data.events || []);
-      setStats(statsRes.data);
-      setMediaList(mediaRes.data.media || []);
-      setClusters(clustersRes.data.clusters || []);
-      setUsersList(usersRes.data.users || []);
-
-      const active = (eventsRes.data.events || []).find((e) => e.is_active);
-      if (active) setSelectedEventId(active.id);
+      const eventsRes = await axios.get('/api/admin/events');
+      const evList = eventsRes.data?.events || [];
+      if (evList.length > 0) {
+        setEvents(evList);
+        localStorage.setItem('faceto_events_cache', JSON.stringify(evList));
+        const active = evList.find((e) => e.is_active);
+        if (active) {
+          setSelectedEventId(active.id);
+          localStorage.setItem('faceto_active_event', JSON.stringify({
+            has_event: true,
+            event: active,
+            schedules: active.schedules || [],
+            media_count: active.media_count || 0
+          }));
+        }
+      } else {
+        // If server returned 0 but we had cache, try to keep cache
+        const cached = localStorage.getItem('faceto_events_cache');
+        if (!cached) setEvents([]);
+      }
     } catch (err) {
-      console.error('Failed to load admin data:', err);
+      console.error('Failed to load events:', err);
     } finally {
       setLoading(false);
+    }
+
+    // 2. Fetch stats
+    try {
+      const statsRes = await axios.get('/api/admin/stats');
+      setStats(statsRes.data);
+    } catch (err) {
+      console.error('Failed to load stats:', err);
+    }
+
+    // 3. Fetch media
+    try {
+      const mediaRes = await axios.get('/api/admin/media');
+      setMediaList(mediaRes.data?.media || []);
+    } catch (err) {
+      console.error('Failed to load media:', err);
+    }
+
+    // 4. Fetch clusters
+    try {
+      const clustersRes = await axios.get('/api/admin/clusters');
+      setClusters(clustersRes.data?.clusters || []);
+    } catch (err) {
+      console.error('Failed to load clusters:', err);
+    }
+
+    // 5. Fetch users
+    try {
+      const usersRes = await axios.get('/api/admin/users');
+      setUsersList(usersRes.data?.users || []);
+    } catch (err) {
+      console.error('Failed to load users:', err);
     }
   };
 
