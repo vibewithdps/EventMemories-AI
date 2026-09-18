@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download, ChevronLeft, ChevronRight, Tag, CheckCircle, Calendar, Film } from 'lucide-react';
+import { getMediaUrl } from '../config';
 
 export const Lightbox = ({ item, onClose, onPrev, onNext, hasPrev, hasNext }) => {
   if (!item) return null;
@@ -61,14 +62,14 @@ export const Lightbox = ({ item, onClose, onPrev, onNext, hasPrev, hasNext }) =>
           <div className="flex-1 flex items-center justify-center p-4 bg-black/60 min-h-[50vh] max-h-[72vh] overflow-hidden">
             {item.media_type === 'video' ? (
               <video
-                src={item.media_url}
+                src={getMediaUrl(item.media_url)}
                 controls
                 autoPlay
                 className="max-h-[68vh] max-w-full rounded-lg shadow-lg"
               />
             ) : (
               <img
-                src={item.media_url}
+                src={getMediaUrl(item.media_url)}
                 alt={item.original_name}
                 className="max-h-[68vh] max-w-full object-contain rounded-lg shadow-lg select-none"
               />
@@ -105,7 +106,7 @@ export const Lightbox = ({ item, onClose, onPrev, onNext, hasPrev, hasNext }) =>
 
             {/* Direct Download Button */}
             <a
-              href={`${item.media_url}&download=true`}
+              href={`${getMediaUrl(item.media_url)}&download=true`}
               download={item.original_name}
               className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-gold-500 to-amber-500 hover:from-gold-600 hover:to-amber-600 text-white text-sm font-semibold shadow-gold-glow transition-all"
             >

@@ -6,6 +6,7 @@ import {
   Trash2, RefreshCw, CheckCircle2, AlertCircle, Sparkles, Tag, 
   Layers, MapPin, Eye, EyeOff, Check, X, Clock, Compass
 } from 'lucide-react';
+import { getMediaUrl } from '../config';
 
 const SAMPLE_WEDDING_FORM = {
   title: "The Royal Wedding Celebration",
@@ -651,7 +652,7 @@ export const AdminDashboardPage = () => {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
               {mediaList.map((media) => (
                 <div key={media.id} className="group relative rounded-2xl overflow-hidden aspect-square shadow-md bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-                  <img src={media.thumbnail_url} alt={media.original_name} className="w-full h-full object-cover" />
+                  <img src={getMediaUrl(media.thumbnail_url)} alt={media.original_name} className="w-full h-full object-cover" />
                   <div className="absolute top-3 left-3 px-2 py-1 rounded-md bg-black/70 backdrop-blur-sm text-gold-300 text-[11px] font-bold">
                     {media.faces_count} Faces
                   </div>
@@ -687,7 +688,7 @@ export const AdminDashboardPage = () => {
                 <div key={cluster.cluster_id} className="glass-card p-5 rounded-3xl border border-gold-300/30 space-y-4">
                   <div className="flex items-center space-x-4">
                     <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-gold-400/60 bg-zinc-900 shrink-0">
-                      <img src={cluster.sample_thumb_url} alt="Cluster Sample" className="w-full h-full object-cover" />
+                      <img src={getMediaUrl(cluster.sample_thumb_url)} alt="Cluster Sample" className="w-full h-full object-cover" />
                     </div>
                     <div>
                       <span className="text-[10px] uppercase font-bold text-gold-600">Cluster #{cluster.cluster_id}</span>

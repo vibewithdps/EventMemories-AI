@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import axios from 'axios';
 import { Lightbox } from '../components/Lightbox';
 import { Image, Film, Download, CheckSquare, Square, RefreshCw, Camera, Sparkles, Filter, CheckCircle } from 'lucide-react';
+import { getMediaUrl } from '../config';
 
 export const MyGalleryPage = ({ setCurrentView }) => {
   const [photos, setPhotos] = useState([]);
@@ -260,7 +261,7 @@ export const MyGalleryPage = ({ setCurrentView }) => {
               >
                 {/* Thumbnail */}
                 <img
-                  src={item.thumbnail_url}
+                  src={getMediaUrl(item.thumbnail_url)}
                   alt={item.original_name}
                   loading="lazy"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
