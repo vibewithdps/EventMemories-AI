@@ -53,6 +53,7 @@ export const AdminDashboardPage = () => {
   const [selectedEventId, setSelectedEventId] = useState('');
   const [eventTag, setEventTag] = useState('General Highlights');
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatusText, setUploadStatusText] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadLogs, setUploadLogs] = useState([]);
   const fileInputRef = useRef(null);
@@ -212,35 +213,67 @@ export const AdminDashboardPage = () => {
   const handleStartUpload = async () => {
     if (!uploadFiles.length) return;
     setIsUploading(true);
-    setUploadProgress(10);
+    setUploadProgress(0);
     setUploadLogs([]);
+    setUploadStatusText(`Preparing to upload ${uploadFiles.length} file(s)...`);
 
-    const formData = new FormData();
-    uploadFiles.forEach((file) => formData.append('files', file));
-    formData.append('event_tag', eventTag);
-    if (selectedEventId) {
-      formData.append('event_id', selectedEventId);
+    const filesToUpload = [...uploadFiles];
+    const total = filesToUpload.length;
+    let successCount = 0;
+    const errors = [];
+    const allLogs = [];
+
+    for (let i = 0; i < total; i++) {
+      const file = filesToUpload[i];
+      setUploadStatusText(`Uploading ${i + 1} of ${total}: ${file.name}...`);
+
+      const formData = new FormData();
+      formData.append('files', file);
+      formData.append('event_tag', eventTag);
+      if (selectedEventId) {
+        formData.append('event_id', selectedEventId);
+      }
+
+      try {
+        const res = await axios.post('/api/admin/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              const filePercent = (progressEvent.loaded / progressEvent.total) * 0.7; // 70% upload, 30% server AI index
+              const overall = Math.round(((i + filePercent) / total) * 100);
+              setUploadProgress(Math.min(99, Math.max(1, overall)));
+            }
+          }
+        });
+
+        if (res.data?.items) {
+          allLogs.push(...res.data.items);
+          setUploadLogs([...allLogs]);
+        }
+        successCount++;
+        setUploadProgress(Math.round(((i + 1) / total) * 100));
+        // Remove processed file from queue in real-time
+        setUploadFiles((prev) => prev.filter((f) => f !== file));
+      } catch (err) {
+        console.error(`Upload error for ${file.name}:`, err);
+        const errMsg = err.response?.data?.detail || err.message;
+        errors.push(`${file.name}: ${errMsg}`);
+      }
     }
 
-    try {
-      setUploadProgress(40);
-      const res = await axios.post('/api/admin/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-        onUploadProgress: (progressEvent) => {
-          const percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          setUploadProgress(Math.min(85, percent));
-        }
-      });
+    setUploadProgress(100);
+    setIsUploading(false);
+    await fetchDashboardData();
 
-      setUploadProgress(100);
-      setUploadLogs(res.data.items || []);
-      setUploadFiles([]);
-      await fetchDashboardData();
-    } catch (err) {
-      console.error('Upload error:', err);
-      alert('Upload failed: ' + (err.response?.data?.detail || err.message));
-    } finally {
-      setIsUploading(false);
+    if (errors.length === 0) {
+      setUploadStatusText(`All ${successCount} file(s) indexed successfully!`);
+      alert(`Success! All ${successCount} media files were indexed and uploaded.`);
+    } else if (successCount > 0) {
+      setUploadStatusText(`Processed ${successCount} of ${total}. ${errors.length} failed.`);
+      alert(`Uploaded ${successCount} of ${total} files.\n${errors.length} file(s) failed:\n${errors.join('\n')}`);
+    } else {
+      setUploadStatusText('Upload failed. Please check network.');
+      alert(`Upload failed:\n${errors.join('\n')}`);
     }
   };
 
@@ -721,8 +754,8 @@ export const AdminDashboardPage = () => {
                         style={{ width: `${uploadProgress}%` }}
                       />
                     </div>
-                    <p className="text-xs text-gold-600 font-medium text-center">
-                      Extracting 128-d vectors... {uploadProgress}%
+                    <p className="text-xs text-gold-600 font-medium text-center truncate">
+                      {uploadStatusText || `Extracting 128-d vectors... ${uploadProgress}%`}
                     </p>
                   </div>
                 )}
@@ -730,10 +763,10 @@ export const AdminDashboardPage = () => {
                 <button
                   onClick={handleStartUpload}
                   disabled={isUploading}
-                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-gold-500 via-amber-400 to-gold-600 hover:from-gold-600 text-white font-semibold text-sm shadow-gold-glow flex items-center justify-center space-x-2"
+                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-gold-500 via-amber-400 to-gold-600 hover:from-gold-600 text-white font-semibold text-sm shadow-gold-glow flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Sparkles className="w-4 h-4" />
-                  <span>{isUploading ? 'Processing...' : `Process & Index ${uploadFiles.length} Media Files`}</span>
+                  <span>{isUploading ? (uploadStatusText || 'Processing...') : `Process & Index ${uploadFiles.length} Media Files`}</span>
                 </button>
               </div>
             )}
