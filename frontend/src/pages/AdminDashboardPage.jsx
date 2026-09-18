@@ -5,7 +5,7 @@ import {
   Calendar, Plus, Upload, Image, Film, Users, ShieldCheck, 
   Trash2, RefreshCw, CheckCircle2, AlertCircle, Sparkles, Tag, 
   Layers, MapPin, Eye, EyeOff, Check, X, Clock, Compass,
-  Edit2, CheckSquare, Square
+  Edit2, CheckSquare, Square, ExternalLink, HardDrive
 } from 'lucide-react';
 import { getMediaUrl } from '../config';
 
@@ -317,8 +317,20 @@ export const AdminDashboardPage = () => {
         </div>
 
         <div className="flex items-center space-x-3 self-start">
+          {stats?.gdrive_connected ? (
+            <div className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-400 text-emerald-700 dark:text-emerald-300 text-xs font-bold shadow-sm">
+              <HardDrive className="w-4 h-4 text-emerald-500" />
+              <span>Drive Auto-Sync: Active</span>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-500 text-xs">
+              <HardDrive className="w-4 h-4 text-zinc-400" />
+              <span>Drive: Local</span>
+            </div>
+          )}
+
           <button
-            onClick={() => setShowEventModal(true)}
+            onClick={handleOpenCreateEvent}
             className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 via-gold-500 to-amber-600 hover:from-amber-700 text-white text-xs font-bold shadow-gold-glow flex items-center space-x-1.5"
           >
             <Plus className="w-4 h-4" />
@@ -800,6 +812,19 @@ export const AdminDashboardPage = () => {
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
+
+                  {/* Google Drive Link if synced */}
+                  {media.drive_view_link && (
+                    <a
+                      href={media.drive_view_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="absolute bottom-2.5 right-2.5 z-10 p-1.5 rounded-lg bg-black/70 hover:bg-black/90 text-white transition-colors flex items-center space-x-1"
+                      title="Open on Google Drive"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 text-gold-400" />
+                    </a>
+                  )}
 
                   <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/90 to-transparent text-white text-xs pointer-events-none">
                     <p className="truncate font-medium">{media.original_name}</p>

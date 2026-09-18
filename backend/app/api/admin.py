@@ -451,6 +451,13 @@ def get_admin_stats(admin_user: dict[str, Any] = Depends(get_current_admin)):
         act = cursor.fetchone()
         active_event = row_to_dict(act) if act else None
         
+    # Check Google Drive connection status
+    try:
+        from app.services.gdrive import gdrive_service
+        gdrive_connected = gdrive_service.is_connected()
+    except Exception:
+        gdrive_connected = False
+        
     return {
         "total_media": total_media,
         "total_photos": total_photos,
@@ -458,9 +465,11 @@ def get_admin_stats(admin_user: dict[str, Any] = Depends(get_current_admin)):
         "total_faces": total_faces,
         "total_guests": total_guests,
         "scanned_guests": scanned_guests,
-        "total_events": total_events,
         "total_storage_mb": round(total_storage / (1024 * 1024), 2),
-        "active_event": active_event
+        "total_events": total_events,
+        "active_event": active_event,
+        "gdrive_connected": gdrive_connected,
+        "gdrive_folder_name": "Event Memories 2026"
     }
 
 @router.post("/purge-biometrics")
