@@ -1,0 +1,49 @@
+# Python virtual environments & bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+backend/venv/
+backend/env/
+venv/
+env/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+backend/app_data.db
+backend/test_app_data.db
+
+# User Uploaded Media (Privacy Protection)
+backend/uploads/photos/*
+backend/uploads/videos/*
+backend/uploads/thumbnails/*
+backend/uploads/temp/*
+!backend/uploads/photos/.gitkeep
+!backend/uploads/videos/.gitkeep
+!backend/uploads/thumbnails/.gitkeep
+!backend/uploads/temp/.gitkeep
+
+# Node.js & Frontend dependencies
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+npm-debug.log*
+yarn-debug.log*
+
+# Environment files
+.env
+.env.local
+.env.*.local
+backend/.env
+
+# macOS & OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
