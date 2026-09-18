@@ -4,7 +4,8 @@ import axios from 'axios';
 import { 
   Calendar, Plus, Upload, Image, Film, Users, ShieldCheck, 
   Trash2, RefreshCw, CheckCircle2, AlertCircle, Sparkles, Tag, 
-  Layers, MapPin, Eye, EyeOff, Check, X, Clock, Compass
+  Layers, MapPin, Eye, EyeOff, Check, X, Clock, Compass,
+  Edit2, CheckSquare, Square
 } from 'lucide-react';
 import { getMediaUrl } from '../config';
 
@@ -39,9 +40,13 @@ export const AdminDashboardPage = () => {
   const [usersList, setUsersList] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // New Event Modal State
+  // New / Edit Event Modal State
   const [showEventModal, setShowEventModal] = useState(false);
+  const [editingEventId, setEditingEventId] = useState(null);
   const [eventForm, setEventForm] = useState(DEFAULT_EVENT_FORM);
+
+  // Media Selection State
+  const [selectedMediaIds, setSelectedMediaIds] = useState(new Set());
 
   // Upload State
   const [uploadFiles, setUploadFiles] = useState([]);
@@ -88,18 +93,82 @@ export const AdminDashboardPage = () => {
     fetchDashboardData();
   }, []);
 
-  // Save new event
-  const handleCreateEvent = async (e) => {
+  // Open Create Event Modal
+  const handleOpenCreateEvent = () => {
+    setEditingEventId(null);
+    setEventForm(DEFAULT_EVENT_FORM);
+    setShowEventModal(true);
+  };
+
+  // Open Edit Event Modal
+  const handleOpenEditEvent = (ev) => {
+    setEditingEventId(ev.id);
+    setEventForm({
+      title: ev.title || '',
+      couple_names: ev.couple_names || '',
+      event_date: ev.event_date ? ev.event_date.slice(0, 16) : '2026-11-20T17:00',
+      venue_city: ev.venue_city || '',
+      venue_name: ev.venue_name || '',
+      venue_map_url: ev.venue_map_url || '',
+      story: ev.story || '',
+      description: ev.description || '',
+      schedules: ev.schedules || [],
+    });
+    setShowEventModal(true);
+  };
+
+  // Save Event (Create or Update)
+  const handleSaveEvent = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('/api/admin/events', eventForm);
+      if (editingEventId) {
+        await axios.put(`/api/admin/events/${editingEventId}`, eventForm);
+        alert(`Event '${eventForm.title}' updated successfully!`);
+      } else {
+        await axios.post('/api/admin/events', eventForm);
+        alert(`Event '${eventForm.title}' published successfully!`);
+      }
       setShowEventModal(false);
+      setEditingEventId(null);
       setEventForm(DEFAULT_EVENT_FORM);
       await fetchDashboardData();
-      alert(`Event '${eventForm.title}' published successfully!`);
     } catch (err) {
       console.error(err);
-      alert('Failed to create event: ' + (err.response?.data?.detail || err.message));
+      alert('Failed to save event: ' + (err.response?.data?.detail || err.message));
+    }
+  };
+
+  // Batch Media Selection Handlers
+  const handleToggleSelectMedia = (id) => {
+    setSelectedMediaIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSelectAllMedia = () => {
+    if (selectedMediaIds.size === mediaList.length) {
+      setSelectedMediaIds(new Set());
+    } else {
+      setSelectedMediaIds(new Set(mediaList.map((m) => m.id)));
+    }
+  };
+
+  const handleBatchDeleteMedia = async () => {
+    if (selectedMediaIds.size === 0) return;
+    if (!window.confirm(`Are you sure you want to delete ${selectedMediaIds.size} selected photo(s)? This cannot be undone.`)) return;
+    try {
+      await axios.post('/api/admin/media/batch-delete', {
+        media_ids: Array.from(selectedMediaIds)
+      });
+      setSelectedMediaIds(new Set());
+      await fetchDashboardData();
+      alert('Selected media files deleted successfully!');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to delete media: ' + (err.response?.data?.detail || err.message));
     }
   };
 
@@ -382,7 +451,7 @@ export const AdminDashboardPage = () => {
               </p>
             </div>
             <button
-              onClick={() => setShowEventModal(true)}
+              onClick={handleOpenCreateEvent}
               className="px-5 py-2.5 rounded-xl bg-gold-500 hover:bg-gold-600 text-white text-xs font-bold shadow-md flex items-center space-x-1.5 self-start"
             >
               <Plus className="w-4 h-4" />
@@ -398,7 +467,7 @@ export const AdminDashboardPage = () => {
                 All dummy data has been removed. Click below to add an event and publish it to the live platform!
               </p>
               <button
-                onClick={() => setShowEventModal(true)}
+                onClick={handleOpenCreateEvent}
                 className="px-6 py-3 rounded-xl bg-gradient-to-r from-amber-600 to-gold-500 text-white text-xs font-bold shadow-gold-glow inline-flex items-center space-x-2"
               >
                 <Sparkles className="w-4 h-4" />
@@ -437,13 +506,22 @@ export const AdminDashboardPage = () => {
                       </p>
                     </div>
 
-                    <button
-                      onClick={() => handleDeleteEvent(ev.id)}
-                      className="text-zinc-400 hover:text-rose-600 p-1 transition-colors"
-                      title="Delete Event"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center space-x-1">
+                      <button
+                        onClick={() => handleOpenEditEvent(ev)}
+                        className="text-zinc-400 hover:text-amber-500 p-1.5 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors"
+                        title="Edit Event Details"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteEvent(ev.id)}
+                        className="text-zinc-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                        title="Delete Event"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
 
                   <div className="space-y-1.5 text-xs text-zinc-600 dark:text-zinc-300">
@@ -641,7 +719,35 @@ export const AdminDashboardPage = () => {
       {/* TAB 3: MEDIA POOL */}
       {activeTab === 'media' && (
         <div className="space-y-6">
-          <h3 className="font-serif text-xl font-bold">Uploaded Media Pool</h3>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="font-serif text-xl font-bold">Uploaded Media Pool</h3>
+              <p className="text-xs text-zinc-500">
+                Manage, preview, or delete photos and videos from your event gallery.
+              </p>
+            </div>
+            {mediaList.length > 0 && (
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={handleSelectAllMedia}
+                  className="px-3 py-1.5 rounded-xl border border-zinc-300 dark:border-zinc-700 text-xs font-semibold hover:bg-zinc-100 dark:hover:bg-dark-800 transition-colors flex items-center space-x-1.5"
+                >
+                  {selectedMediaIds.size === mediaList.length ? <CheckSquare className="w-4 h-4 text-gold-500" /> : <Square className="w-4 h-4 text-zinc-400" />}
+                  <span>{selectedMediaIds.size === mediaList.length ? 'Deselect All' : 'Select All'}</span>
+                </button>
+                {selectedMediaIds.size > 0 && (
+                  <button
+                    onClick={handleBatchDeleteMedia}
+                    className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md flex items-center space-x-1.5 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete Selected ({selectedMediaIds.size})</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
           {mediaList.length === 0 ? (
             <div className="text-center py-16 glass-card rounded-3xl border border-zinc-200 dark:border-zinc-800">
               <Image className="w-10 h-10 text-zinc-400 mx-auto mb-2" />
@@ -653,16 +759,36 @@ export const AdminDashboardPage = () => {
               {mediaList.map((media) => (
                 <div key={media.id} className="group relative rounded-2xl overflow-hidden aspect-square shadow-md bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
                   <img src={getMediaUrl(media.thumbnail_url)} alt={media.original_name} className="w-full h-full object-cover" />
-                  <div className="absolute top-3 left-3 px-2 py-1 rounded-md bg-black/70 backdrop-blur-sm text-gold-300 text-[11px] font-bold">
+                  
+                  {/* Selection Checkbox */}
+                  <button
+                    type="button"
+                    onClick={() => handleToggleSelectMedia(media.id)}
+                    className="absolute top-2.5 left-2.5 z-10 p-1.5 rounded-lg bg-black/70 backdrop-blur-sm hover:bg-black/90 text-white transition-colors"
+                    title="Select to delete"
+                  >
+                    {selectedMediaIds.has(media.id) ? (
+                      <CheckSquare className="w-4 h-4 text-gold-400" />
+                    ) : (
+                      <Square className="w-4 h-4 text-zinc-300" />
+                    )}
+                  </button>
+
+                  {/* Faces count badge */}
+                  <div className="absolute top-2.5 left-11 px-2 py-1 rounded-md bg-black/70 backdrop-blur-sm text-gold-300 text-[10px] font-bold pointer-events-none">
                     {media.faces_count} Faces
                   </div>
+
+                  {/* Single Photo Delete Button - ALWAYS visible on mobile and desktop */}
                   <button
                     onClick={() => handleDeleteMedia(media.id)}
-                    className="absolute top-3 right-3 p-2 rounded-lg bg-rose-600 text-white opacity-0 group-hover:opacity-100 hover:bg-rose-700 transition-all shadow-md"
+                    className="absolute top-2.5 right-2.5 z-10 p-1.5 rounded-lg bg-rose-600/90 hover:bg-rose-600 text-white transition-all shadow-md"
+                    title="Delete this photo"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
-                  <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/90 to-transparent text-white text-xs">
+
+                  <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/90 to-transparent text-white text-xs pointer-events-none">
                     <p className="truncate font-medium">{media.original_name}</p>
                     <span className="text-[10px] text-gold-400">{media.event_tag}</span>
                   </div>
@@ -782,29 +908,33 @@ export const AdminDashboardPage = () => {
               <div className="flex items-center justify-between pb-4 border-b border-zinc-200 dark:border-zinc-800">
                 <div>
                   <h3 className="font-serif text-2xl font-bold text-dark-900 dark:text-zinc-100">
-                    Create Event
+                    {editingEventId ? 'Edit Event' : 'Create Event'}
                   </h3>
                   <p className="text-xs text-zinc-500">
-                    Fill in the event details below to publish for your guests.
+                    {editingEventId 
+                      ? 'Update the event information and save changes.' 
+                      : 'Fill in the event details below to publish for your guests.'}
                   </p>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <button
-                    type="button"
-                    onClick={() => setEventForm(SAMPLE_WEDDING_FORM)}
-                    className="px-3 py-1.5 rounded-xl bg-gold-100 dark:bg-gold-950/60 text-gold-700 dark:text-gold-300 hover:bg-gold-200 dark:hover:bg-gold-900/60 text-xs font-semibold flex items-center space-x-1.5 border border-gold-300/60 transition-all"
-                    title="1-Click Fill Real Wedding Details"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-gold-600" />
-                    <span>Auto-Fill Example</span>
-                  </button>
+                  {!editingEventId && (
+                    <button
+                      type="button"
+                      onClick={() => setEventForm(SAMPLE_WEDDING_FORM)}
+                      className="px-3 py-1.5 rounded-xl bg-gold-100 dark:bg-gold-950/60 text-gold-700 dark:text-gold-300 hover:bg-gold-200 dark:hover:bg-gold-900/60 text-xs font-semibold flex items-center space-x-1.5 border border-gold-300/60 transition-all"
+                      title="1-Click Fill Real Wedding Details"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-gold-600" />
+                      <span>Auto-Fill Example</span>
+                    </button>
+                  )}
                   <button onClick={() => setShowEventModal(false)} className="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
                     <X className="w-6 h-6" />
                   </button>
                 </div>
               </div>
 
-              <form onSubmit={handleCreateEvent} className="space-y-4 pt-4">
+              <form onSubmit={handleSaveEvent} className="space-y-4 pt-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold mb-1 text-zinc-700 dark:text-zinc-300">
@@ -903,7 +1033,7 @@ export const AdminDashboardPage = () => {
                     type="submit"
                     className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 via-gold-500 to-amber-600 text-white text-xs font-bold shadow-gold-glow hover:opacity-95 transition-all"
                   >
-                    Publish Event
+                    {editingEventId ? 'Save Changes' : 'Publish Event'}
                   </button>
                 </div>
               </form>

@@ -38,6 +38,10 @@ class EventUpdateRequest(BaseModel):
     venue_map_url: Optional[str] = ""
     description: Optional[str] = ""
     story: Optional[str] = ""
+    schedules: Optional[list[ScheduleItemCreate]] = None
+
+class BatchDeleteMediaRequest(BaseModel):
+    media_ids: list[int]
 
 class TagClusterRequest(BaseModel):
     cluster_id: int
@@ -149,6 +153,25 @@ def update_event(event_id: int, req: EventUpdateRequest, admin_user: dict[str, A
         ))
         if cursor.rowcount == 0:
             raise HTTPException(status_code=404, detail="Event not found")
+
+        # Update schedules if provided
+        if req.schedules is not None:
+            cursor.execute("DELETE FROM event_schedules WHERE event_id = ?", (event_id,))
+            for s in req.schedules:
+                cursor.execute("""
+                    INSERT INTO event_schedules (
+                        event_id, title, schedule_date, schedule_time,
+                        location, description, is_main_event
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    event_id,
+                    s.title.strip(),
+                    s.schedule_date.strip(),
+                    s.schedule_time.strip(),
+                    s.location.strip(),
+                    s.description.strip() if s.description else "",
+                    1 if s.is_main_event else 0
+                ))
             
     return {"success": True, "message": "Event updated successfully"}
 
@@ -270,6 +293,41 @@ def delete_media(media_id: int, admin_user: dict[str, Any] = Depends(get_current
             pass
             
     return {"success": True, "message": f"Media #{media_id} and its face embeddings deleted"}
+
+@router.post("/media/batch-delete")
+def batch_delete_media(req: BatchDeleteMediaRequest, admin_user: dict[str, Any] = Depends(get_current_admin)):
+    """Batch delete multiple photos or videos mistakenly uploaded."""
+    if not req.media_ids:
+        return {"success": True, "deleted_count": 0, "message": "No media IDs provided."}
+
+    placeholders = ",".join("?" for _ in req.media_ids)
+    files_to_remove = []
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(f"SELECT file_path, thumbnail_path FROM media WHERE id IN ({placeholders})", req.media_ids)
+        rows = cursor.fetchall()
+        for r in rows:
+            if r["file_path"]:
+                files_to_remove.append(r["file_path"])
+            if r["thumbnail_path"] and r["thumbnail_path"] != r["file_path"]:
+                files_to_remove.append(r["thumbnail_path"])
+
+        cursor.execute(f"DELETE FROM media WHERE id IN ({placeholders})", req.media_ids)
+        deleted_count = cursor.rowcount
+
+    for path in files_to_remove:
+        if path and os.path.exists(path):
+            try:
+                os.remove(path)
+            except Exception:
+                pass
+
+    return {
+        "success": True,
+        "deleted_count": deleted_count,
+        "message": f"Successfully deleted {deleted_count} media items and purged face embeddings."
+    }
 
 @router.get("/clusters")
 def get_face_clusters(admin_user: dict[str, Any] = Depends(get_current_admin)):
