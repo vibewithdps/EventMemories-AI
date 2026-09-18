@@ -256,6 +256,19 @@ export const AdminDashboardPage = () => {
     }
   };
 
+  // Delete Guest User
+  const handleDeleteUser = async (userId, userEmail) => {
+    if (!window.confirm(`Delete guest account "${userEmail}" and their face biometric scan?`)) return;
+    try {
+      await axios.delete(`/api/admin/users/${userId}`);
+      await fetchDashboardData();
+      alert(`User "${userEmail}" deleted successfully.`);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to delete user: ' + (err.response?.data?.detail || err.message));
+    }
+  };
+
   // Tag Face Cluster
   const handleSaveClusterTag = async (clusterId) => {
     if (!newClusterLabel.trim()) return;
@@ -841,6 +854,7 @@ export const AdminDashboardPage = () => {
                   <th className="px-6 py-4">Email</th>
                   <th className="px-6 py-4">Role</th>
                   <th className="px-6 py-4">Scan Status</th>
+                  <th className="px-6 py-4 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -857,6 +871,17 @@ export const AdminDashboardPage = () => {
                     </td>
                     <td className="px-6 py-4">
                       {u.has_scanned ? <span className="text-emerald-600 font-semibold">Scanned</span> : <span className="text-zinc-400">Pending</span>}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      {u.role !== 'admin' && (
+                        <button
+                          onClick={() => handleDeleteUser(u.id, u.email)}
+                          className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                          title={`Delete guest account ${u.email}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

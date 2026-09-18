@@ -396,6 +396,28 @@ def get_users_activity(admin_user: dict[str, Any] = Depends(get_current_admin)):
         
     return {"users": users, "total": len(users)}
 
+@router.delete("/users/{user_id}")
+def delete_user(user_id: int, admin_user: dict[str, Any] = Depends(get_current_admin)):
+    """Admin can delete a guest user account and their biometric face data."""
+    if user_id == admin_user["id"]:
+        raise HTTPException(status_code=400, detail="Admin account cannot be deleted.")
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT email, role FROM users WHERE id = ?", (user_id,))
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="User not found")
+        if row["role"] == "admin":
+            raise HTTPException(status_code=400, detail="Admin accounts cannot be deleted.")
+
+        # Delete user face scan data
+        cursor.execute("DELETE FROM user_faces WHERE user_id = ?", (user_id,))
+        # Delete user record
+        cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
+
+    return {"success": True, "message": f"Guest user '{row['email']}' successfully deleted."}
+
 @router.get("/stats")
 def get_admin_stats(admin_user: dict[str, Any] = Depends(get_current_admin)):
     with get_db() as conn:
