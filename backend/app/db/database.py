@@ -136,6 +136,13 @@ def init_db():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_media_event ON media(event_id);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_events_active ON events(is_active);")
 
+        # Migrate media table for Google Drive sync columns
+        for col in ["drive_file_id TEXT", "drive_view_link TEXT"]:
+            try:
+                cursor.execute(f"ALTER TABLE media ADD COLUMN {col};")
+            except sqlite3.OperationalError:
+                pass
+
 def row_to_dict(row: Optional[sqlite3.Row]) -> Optional[dict[str, Any]]:
     if row is None:
         return None

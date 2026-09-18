@@ -149,6 +149,27 @@ class StorageService:
                     face.get("frame_timestamp", 0.0)
                 ))
 
+        # Asynchronously sync file to user's Google Drive
+        try:
+            from app.services.gdrive import gdrive_service
+            if gdrive_service.is_connected():
+                import threading
+                def _bg_gdrive_sync():
+                    try:
+                        g_res = gdrive_service.upload_media_file(dest_path, original_name, event_tag)
+                        if g_res.get("success"):
+                            with get_db() as conn_bg:
+                                c_bg = conn_bg.cursor()
+                                c_bg.execute(
+                                    "UPDATE media SET drive_file_id = ?, drive_view_link = ? WHERE id = ?",
+                                    (g_res.get("drive_file_id"), g_res.get("drive_view_link"), media_id)
+                                )
+                    except Exception as g_err:
+                        print(f"[GDRIVE_SYNC_ERR] {g_err}")
+                threading.Thread(target=_bg_gdrive_sync, daemon=True).start()
+        except Exception as e:
+            print(f"[GDRIVE_TRIGGER_ERR] {e}")
+
         return {
             "media_id": media_id,
             "filename": dest_filename,
