@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: eventmemories-ai
+    env: docker
+    plan: free
+    region: singapore
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: SECRET_KEY
+        generateValue: true

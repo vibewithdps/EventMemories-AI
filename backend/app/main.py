@@ -43,8 +43,24 @@ app.include_router(face.router, prefix=settings.API_V1_STR)
 app.include_router(gallery.router, prefix=settings.API_V1_STR)
 app.include_router(admin.router, prefix=settings.API_V1_STR)
 
+# Mount uploads static directory if present
+if os.path.exists(settings.UPLOAD_DIR):
+    app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
+
+# Mount built frontend SPA static files if present (for unified production deployment)
+frontend_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../frontend/dist"))
+assets_dir = os.path.join(frontend_dist, "assets")
+if os.path.exists(assets_dir):
+    app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+from fastapi.responses import FileResponse
+from fastapi import HTTPException
+
 @app.get("/")
-def root():
+def serve_root():
+    index_file = os.path.join(frontend_dist, "index.html")
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
     return {
         "status": "online",
         "project": settings.PROJECT_NAME,
@@ -109,6 +125,19 @@ def get_wedding_info():
         "project_name": settings.PROJECT_NAME,
         "creator": settings.DESIGNER_NAME
     }
+
+@app.get("/{full_path:path}")
+def serve_spa_fallback(full_path: str):
+    # Pass through API or documentation paths
+    if full_path.startswith("api") or full_path.startswith("uploads") or full_path in ["docs", "redoc", "openapi.json"]:
+        raise HTTPException(status_code=404, detail="Not Found")
+    index_file = os.path.join(frontend_dist, "index.html")
+    if os.path.exists(index_file):
+        target_file = os.path.join(frontend_dist, full_path)
+        if full_path and os.path.isfile(target_file):
+            return FileResponse(target_file)
+        return FileResponse(index_file)
+    raise HTTPException(status_code=404, detail="Not Found")
 
 if __name__ == "__main__":
     import uvicorn
