@@ -47,23 +47,6 @@ export const LoginPage = ({ initialMode = 'login', setCurrentView }) => {
     }
   };
 
-  const handleAdminQuickLogin = async () => {
-    setAuthMode('admin');
-    setEmail('thakurdps795@gmail.com');
-    setPassword('788052');
-    setLoading(true);
-    try {
-      const logged = await login('thakurdps795@gmail.com', '788052');
-      if (logged.role === 'admin') {
-        setCurrentView('admin-dashboard');
-      }
-    } catch (err) {
-      setError('Admin login failed.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="min-h-[75vh] flex items-center justify-center px-4 py-12">
       <motion.div
@@ -179,7 +162,7 @@ export const LoginPage = ({ initialMode = 'login', setCurrentView }) => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder={authMode === 'admin' ? 'thakurdps795@gmail.com' : 'guest@wedding.com'}
+                placeholder={authMode === 'admin' ? 'admin@example.com' : 'guest@wedding.com'}
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white/70 dark:bg-dark-800/80 text-sm text-dark-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-gold-400"
               />
             </div>
@@ -196,7 +179,7 @@ export const LoginPage = ({ initialMode = 'login', setCurrentView }) => {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="Enter password"
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white/70 dark:bg-dark-800/80 text-sm text-dark-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-gold-400"
               />
             </div>
@@ -227,18 +210,6 @@ export const LoginPage = ({ initialMode = 'login', setCurrentView }) => {
             )}
           </button>
         </form>
-
-        {/* 1-Click Fast Admin Sign In for thakurdps795@gmail.com */}
-        <div className="mt-6 pt-6 border-t border-zinc-200 dark:border-zinc-800 space-y-3 text-center">
-          <button
-            type="button"
-            onClick={handleAdminQuickLogin}
-            className="w-full py-2.5 px-4 rounded-xl border border-amber-500/60 bg-amber-50/60 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 text-xs font-bold hover:bg-amber-100/60 transition-colors flex items-center justify-center space-x-2"
-          >
-            <ShieldCheck className="w-4 h-4 text-amber-600" />
-            <span>1-Click Admin Access (thakurdps795@gmail.com)</span>
-          </button>
-        </div>
 
       </motion.div>
     </div>

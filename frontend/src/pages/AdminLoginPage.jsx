@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import { ShieldCheck, Lock, Mail, AlertCircle, ArrowRight, Sparkles } from 'lucide-react';
+import { ShieldCheck, Lock, Mail, AlertCircle, ArrowRight } from 'lucide-react';
 
 export const AdminLoginPage = ({ setCurrentView }) => {
-  const [email, setEmail] = useState('thakurdps795@gmail.com');
-  const [password, setPassword] = useState('788052');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -27,22 +27,6 @@ export const AdminLoginPage = ({ setCurrentView }) => {
     } catch (err) {
       console.error('Admin login error:', err);
       setError(err.response?.data?.detail || 'Invalid admin credentials.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleQuickLogin = async () => {
-    setEmail('thakurdps795@gmail.com');
-    setPassword('788052');
-    setLoading(true);
-    try {
-      const logged = await login('thakurdps795@gmail.com', '788052');
-      if (logged.role === 'admin') {
-        setCurrentView('admin-dashboard');
-      }
-    } catch (err) {
-      setError('Admin sign-in failed.');
     } finally {
       setLoading(false);
     }
@@ -88,7 +72,7 @@ export const AdminLoginPage = ({ setCurrentView }) => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="thakurdps795@gmail.com"
+                placeholder="admin@example.com"
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white/70 dark:bg-dark-800/80 text-sm text-dark-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
             </div>
@@ -105,7 +89,7 @@ export const AdminLoginPage = ({ setCurrentView }) => {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="Enter password"
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white/70 dark:bg-dark-800/80 text-sm text-dark-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
             </div>
@@ -127,17 +111,7 @@ export const AdminLoginPage = ({ setCurrentView }) => {
           </button>
         </form>
 
-        {/* 1-Click Fast Admin Sign In */}
-        <div className="mt-6 pt-6 border-t border-zinc-200 dark:border-zinc-800 space-y-3 text-center">
-          <button
-            type="button"
-            onClick={handleQuickLogin}
-            className="w-full py-2.5 px-4 rounded-xl border border-amber-500/60 bg-amber-50/60 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 text-xs font-bold hover:bg-amber-100/60 transition-colors flex items-center justify-center space-x-2"
-          >
-            <Sparkles className="w-4 h-4 text-amber-600" />
-            <span>1-Click Admin Sign In (thakurdps795@gmail.com)</span>
-          </button>
-
+        <div className="mt-6 pt-6 border-t border-zinc-200 dark:border-zinc-800 text-center">
           <button
             type="button"
             onClick={() => setCurrentView('login')}
